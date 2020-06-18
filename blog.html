@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>Nemanja Banda - Programming blog</title>
+        <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico" />
+        <!-- Font Awesome icons (free version)-->
+        <script src="https://use.fontawesome.com/releases/v5.13.0/js/all.js" crossorigin="anonymous"></script>
+        <!-- Google fonts-->
+        <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet" />
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="css/styles.css" rel="stylesheet" />
+    </head>
+    <body id="page-top">
+        <!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-light fixed-top" id="mainNav">
+            <div class="container">
+                <a class="navbar-brand js-scroll-trigger" href="./index.html#page-top">Home</a><button class="navbar-toggler navbar-toggler-right" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">Menu<i style="margin-left: 0.5em;" class="fas fa-bars"></i></button>
+                <div class="collapse navbar-collapse" id="navbarResponsive">
+                    <ul class="navbar-nav ml-auto">                                                                
+                        <li class="nav-item"><a class="nav-link js-scroll-trigger" href="./projects.html">Projects</a></li>        
+						<li class="nav-item"><a class="nav-link js-scroll-trigger" href="#contact">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>        
+        <!-- About-->
+        <section class="about-section programming-blog text-center" id="about">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <h2 class="text-white mb-4">Programming blog</h2>                        
+                    </div>
+                </div>                
+            </div>
+        </section>
+        <!-- Projects-->
+        <section class="projects-section bg-light" id="projects">
+            
+            <div class="container">
+                <div class="featured-text text-left">
+                    <h4>Finding localizable strings within the assembly</h4>
+                    <p class="text-black-90 mb-0">Tag: C#, .NET Framework </p>
+                    <p class="text-black-90 mb-0">
+                            Errors were occurring when a third-party application for localization was trying to build satellite assemblies for assemblies that did not contain strings that can be localized.
+                            Since it wasn't possible to prevent users from marking those assemblies as localizable, the only solution was to create a mechanism to detect and handle those cases.
+                            The code below uses reflection to check for existing localizable strings within the assembly.
+                    </p>
+                    <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#cs2">Show/hide code</button>
+                    <div id="cs2" class="collapse">
+                        <pre class="prettyprint lang-cs">
+
+    using System;
+    using System.Collections;
+    using System.Globalization;
+    using System.IO;
+    using System.Reflection;
+    using System.Resources;
+
+    class LocalizableStringsChecker
+    {
+        public bool AssemblyHasLocalizableStrings(string assemblyPath)
+        {
+            try
+            {
+                Assembly assembly = Assembly.LoadFrom(assemblyPath);
+
+                // Try to find existing resource strings in the assembly
+                foreach (string resourceName in assembly.GetManifestResourceNames())
+                {
+                    // Skip generated system resources
+                    if (resourceName.IndexOf(".g.", StringComparison.InvariantCultureIgnoreCase) > 0) continue;
+
+                    string baseName = Path.GetFileNameWithoutExtension(resourceName);
+                    ResourceManager resourceManager = new ResourceManager(baseName, assembly);
+
+                    using (ResourceSet resourceSet = resourceManager.GetResourceSet(CultureInfo.InvariantCulture, true, true))
+                    {
+                        IDictionaryEnumerator enumerator = resourceSet.GetEnumerator();
+
+                        while (enumerator.MoveNext())
+                        {
+                            // At least one localizable string exists, return
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: {0} {1}", ex.Message, ex.StackTrace);
+                return false;
+            }
+
+            return false;
+        }
+    }                               
+
+                        </pre>
+                    </div>
+                </div>
+                <!-- Separator-->
+                <div class="row separator-space" />
+            </div>
+            
+            <div class="container">
+                <div class="featured-text text-left">
+                    <h4>Periodic code execution in ASP.NET </h4>
+                    <p class="text-black-90 mb-0">Tag: ASP.NET</p>
+                    <p class="text-black-90 mb-0">
+                        When making API calls from any application, it can be problematic if the called job takes a few hours to complete.
+                        Sure, it is possible to just wait, but in APS.NET applications there are many reasons why our background thread could be taken down while waiting.
+                        If API provides an option to check job status, a nice solution would be to perform that check periodically. 
+                        In APS.NET application it can be done quite easy with <a href="https://www.quartz-scheduler.net/" target="_">Quartz.NET</a>, "a full-featured, open source job scheduling system that can be used from smallest apps to large scale enterprise systems".
+                    </p>
+                    <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#cs3">Show/hide code</button>
+                    <div id="cs3" class="collapse">
+                        <pre class="prettyprint lang-cs">
+
+    using Quartz;
+    using Quartz.Impl;
+    using System.Threading.Tasks;
+
+    // Main class for creating jobs, called when ASP.NET application is started
+    public class JobScheduler
+    {
+        public static async Task Start()
+        {
+            IScheduler scheduler = await StdSchedulerFactory.GetDefaultScheduler();
+            await scheduler.Start();
+
+            IJobDetail job = JobBuilder.Create<ScheduledJob>().Build();
+
+            // Trigger the job to run now, and then every 5 minutes
+            ITrigger trigger = TriggerBuilder.Create()
+                .StartNow()
+                .WithSimpleSchedule(x => x.WithIntervalInMinutes(5)
+                                            .RepeatForever())
+                .Build();
+
+            await scheduler.ScheduleJob(job, trigger);
+        }
+    }
+    
+    // Job that will be executed
+    public class ScheduledJob : IJob
+    {
+        public ScheduledJob() { }
+
+        public async Task Execute(IJobExecutionContext context)
+        {
+            await Task.Run(() =>
+            {
+                HandleScheduledJob();
+            });
+        }
+
+        public void HandleScheduledJob()
+        {
+            // Code here will be executed every 5 minutes
+        }
+    }
+                                                        
+                        </pre>
+                    </div>
+                </div>
+                <!-- Separator-->
+                <div class="row separator-space" />
+            </div>
+
+            <div class="container">   
+                <div class="featured-text">
+                    <h4>Changing the name of compiled assembly</h4>
+                    <p class="text-black-90 mb-0">Tag: C# </p>
+                    <p class="text-black-90 mb-0">
+                        DLL files that were being generated by a third-party software had a wrong name.
+                        It was easy enough to just rename the files, but the problem was that the assembly names were also wrong.
+                        It turned out it was also an easy fix with <a href="https://www.mono-project.com/docs/tools+libraries/libraries/Mono.Cecil/" target="_">Mono.Cecil</a> library.
+                    </p>
+                    <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#cs1">Show/hide code</button>
+                    <div id="cs1" class="collapse">
+                        <pre class="prettyprint lang-cs">
+
+    using System;
+    using System.IO;
+    using Mono.Cecil;
+
+    public class AssemblyRenamer
+    {
+        public void RenameAssembly(string assemblyPath, string newName)
+        {
+            try
+            {    
+                string fileName = Path.GetFileName(assemblyPath);
+                // Help path so that we can load the assembly, and then save the new one to the original path
+                string loadAssemblyPath = assemblyPath.Replace(fileName, string.Format("Rename{0}", fileName));
+                
+                // Rename input assembly
+                File.Move(assemblyPath, loadAssemblyPath);
+
+                // Have Mono.Cecil load the assembly
+                using (var assemblyDefinition = Mono.Cecil.AssemblyDefinition.ReadAssembly(loadAssemblyPath))
+                {
+                    // Change the name
+                    assemblyDefinition.Name.Name = newName;
+                    assemblyDefinition.MainModule.Name = newName;
+                    // Save the new assembly to the original path
+                    assemblyDefinition.Write(assemblyPath);
+                }
+
+                // Delete helper file
+                File.Delete(loadAssemblyPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: {0} {1}", ex.Message, ex.StackTrace);                
+            }            
+        }
+    }
+                      
+                        </pre>
+                    </div>
+                </div>                       
+            </div> 
+        </section>
+        <!-- Contact-->
+        <section class="contact-section bg-black" id="contact">
+            <div class="container">
+                <div class="row">                    
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="card py-4 h-100">
+                            <div class="card-body text-center">
+                                <i style="font-size: 2em" class="fas fa-envelope text-primary mb-2"></i>
+                                <h4 class="m-0">E-mail</h4>
+                                <hr class="my-4" />
+                                <div class="small text-black-50"><a href="mailto:nemanjabanda.dev@gmail.com">nemanjabanda.dev@gmail.com</a></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="card py-4 h-100">
+                            <div class="card-body text-center">
+                                <i style="font-size: 2em" class="fab fa-linkedin text-primary mb-2"></i>
+                                <h4 class="m-0">LinkedIn</h4>
+                                <hr class="my-4" />
+                                <div class="small text-black-50"><a href="https://www.linkedin.com/in/nemanja-banda/" target="_">Visit profile</a></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="card py-4 h-100">
+                            <div class="card-body text-center">
+                                <i style="font-size: 2em" class="fab fa-stack-overflow text-primary mb-2"></i>
+                                <h4 class="m-0">Stack Overflow</h4>
+                                <hr class="my-4" />                                
+                                <div class="small text-black-50"><a href="https://stackoverflow.com/users/780089/nemanja-banda" target="_">Visit profile</a></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>                
+            </div>
+        </section>
+        <!-- Footer-->
+        <footer class="footer bg-black small text-center text-white-50"><div class="container">Copyright © Nemanja Banda 2020.</div></footer>
+        <!-- Bootstrap core JS-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.bundle.min.js"></script>
+        <!-- Third party plugin JS-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+        <!-- Core theme JS-->
+        <script src="js/scripts.js"></script>
+    </body>
+</html>
